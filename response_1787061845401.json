@@ -1,0 +1,66 @@
+{
+  "status": "success",
+  "message": "Successfully authenticated, parsed, matched, and saved to database.",
+  "database_resume_id": 1,
+  "data": {
+    "parsed_resume": {
+      "contact_info": {
+        "email": "pawankumarmt21020@gmail.com",
+        "phone_number": "6360881655"
+      },
+      "summary": "Dedicated Master of Computer Applications (MCA) student and motivated fresher with hands-on experience in Artificial\nIntelligence and Data Analytics. Proficient in building machine learning models, conducting end-to-end data analysis, and\ndeveloping full-stack web applications. Seeking to leverage analytical and technical skills to solve complex problems in a\ndynamic development or data-driven role.",
+      "education": "Master of Computer Application (Pursuing) | K S Institute of Technology, Bangalore\nPursuing\nBachelor of Computer Application – 8.9 CGPA | Vivekananda Institute of Management, Bangalore\n2022 - 2025\nPCMB - 64% | Sheshadripuram PU College, Bangalore\n2020 - 2022\nSSLC - 78% | Radha Krishna Public School, Bangalore\n2019 - 2020",
+      "internships": "AI Intern | INFOSYS SPRINGBOARD 7.0\nJuly 2026 – Present\nCurrently engaged in a project-based virtual internship focused on Artificial Intelligence and Machine Learning.\nActively developing and optimizing AI models by applying advanced data preprocessing, feature engineering, and\nevaluation techniques to improve overall model accuracy and performance.\nData Analytics Intern | Edunet Foundation\nDec 2024 – Jan 2025\nPerformed end-to-end data analysis, which included collecting, cleaning, and interpreting large datasets to uncover\nactionable business insights.\nUtilized predictive modeling and data visualization tools to build interactive dashboards, effectively communicating\ncomplex data findings.",
+      "projects": "Zero-Trust API Security Scanner\nDesigned a structural analysis prototype and phase 1 presentation using Python to identify and mitigate API vulnerabilities\nwithin a zero-trust architecture.\nAbyssal Command (Web Game)\nEngineered a customized interactive web application game utilizing React and Canvas, demonstrating strong front-end\nlogic and UI design capabilities.\nUber Price Prediction System\nDesigned and trained a machine learning regression model using Python and Pandas to predict dynamic Uber ride fares\nusing historical trip data.\nHospital Management System\nDeveloped a web-based Hospital Management System using PHP, HTML, and CSS to streamline daily hospital operations\nand manage patient/doctor records.",
+      "certifications": "Snapchat Augmented Reality Lenses – Bharat XR & Snap AR\nAI & ML Certification – Netcraftz Foundation\nPower BI Certification – Edunet Foundation\nPython By Example – Infosys Springboard\nParticipation Certification in AI Saksham Program and Hackathon\nLANGUAGES KNOWN\nEnglish, Kannada, Hindi\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•",
+      "extracted_skills": [
+        "Python",
+        "FastAPI",
+        "SQL",
+        "Pandas",
+        "PHP",
+        "HTML",
+        "CSS",
+        "MySQL",
+        "Power BI",
+        "Java",
+        "C",
+        "Streamlit",
+        "JavaScript",
+        "Node.js"
+      ]
+    },
+    "rag_matches": [
+      {
+        "job_id": "INT-003",
+        "title": "Data Science & Analytics Intern",
+        "company": "FinMetrics Global",
+        "matched_skills": [
+          "Python",
+          "Pandas",
+          "SQL"
+        ],
+        "composite_score": 0.4045
+      },
+      {
+        "job_id": "INT-002",
+        "title": "Backend Engineering Intern",
+        "company": "CloudScale Systems",
+        "matched_skills": [
+          "Python",
+          "FastAPI"
+        ],
+        "composite_score": 0.2686
+      },
+      {
+        "job_id": "INT-001",
+        "title": "Generative AI Research Intern",
+        "company": "NexusAI Labs",
+        "matched_skills": [
+          "Python"
+        ],
+        "composite_score": 0.2272
+      }
+    ]
+  }
+}
