@@ -12,6 +12,10 @@ const strength = (p) => {
                      return { pct:100,label:"Strong",  color:"bg-emerald-500",text:"text-emerald-400" };
 };
 
+const inputBase = "w-full bg-gray-900 border text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 outline-none transition-all duration-200";
+const inputNormal = "border-gray-800 hover:border-gray-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
+const inputError  = "border-red-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/20";
+
 export default function RegisterPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -37,32 +41,6 @@ export default function RegisterPage() {
     finally { setLoading(false); }
   };
 
-  const Field = ({ label, name, type="text", placeholder, extra }) => (
-    <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay: 0.1 + ["full_name","email","password","confirm"].indexOf(name)*0.07 }}>
-      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
-        {label}{extra}
-      </label>
-      {name === "password" ? (
-        <div className="relative">
-          <input type={showPass?"text":"password"} name="password" value={form.password} onChange={set}
-            placeholder={placeholder}
-            className={"w-full bg-gray-900 border text-white rounded-xl px-4 py-3 pr-16 text-sm placeholder-gray-600 outline-none transition-all duration-200 " +
-              "border-gray-800 hover:border-gray-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"} />
-          <button type="button" onClick={() => setShowPass(v => !v)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-brand-400 text-xs transition font-medium">
-            {showPass?"Hide":"Show"}
-          </button>
-        </div>
-      ) : (
-        <input type={type} name={name} value={form[name]} onChange={set} placeholder={placeholder}
-          className={"w-full bg-gray-900 border text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 outline-none transition-all duration-200 " +
-            (name==="confirm" && mismatch
-              ? "border-red-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-              : "border-gray-800 hover:border-gray-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20")} />
-      )}
-    </motion.div>
-  );
-
   return (
     <div className="min-h-[calc(100vh-52px)] flex items-center justify-center px-6 py-10">
       <motion.div className="w-full max-w-md"
@@ -85,13 +63,39 @@ export default function RegisterPage() {
         <motion.div className="glass rounded-2xl p-7 shadow-2xl"
           initial={{ y:20, opacity:0 }} animate={{ y:0, opacity:1 }} transition={{ delay:0.1 }}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Field label="Full Name"  name="full_name" placeholder="Pawan Kumar" />
-            <Field label="Email"      name="email"     type="email" placeholder="you@example.com" />
+
+            {/* Full Name */}
+            <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.1 }}>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Full Name</label>
+              <input type="text" name="full_name" value={form.full_name} onChange={set}
+                placeholder="Pawan Kumar" autoComplete="name"
+                className={`${inputBase} ${inputNormal}`} />
+            </motion.div>
+
+            {/* Email */}
+            <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.17 }}>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Email</label>
+              <input type="email" name="email" value={form.email} onChange={set}
+                placeholder="you@example.com" autoComplete="email"
+                className={`${inputBase} ${inputNormal}`} />
+            </motion.div>
 
             {/* Password with strength bar */}
             <div className="space-y-1.5">
-              <Field label="Password" name="password" placeholder="Min 8 characters"
-                extra={s && <span className={"ml-2 font-normal normal-case " + s.text}>{s.label}</span>} />
+              <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.24 }}>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
+                  Password{s && <span className={"ml-2 font-normal normal-case " + s.text}>{s.label}</span>}
+                </label>
+                <div className="relative">
+                  <input type={showPass?"text":"password"} name="password" value={form.password} onChange={set}
+                    placeholder="Min 8 characters" autoComplete="new-password"
+                    className={`${inputBase} ${inputNormal} pr-16`} />
+                  <button type="button" onClick={() => setShowPass(v => !v)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-brand-400 text-xs transition font-medium">
+                    {showPass?"Hide":"Show"}
+                  </button>
+                </div>
+              </motion.div>
               {s && (
                 <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
                   <motion.div className={"h-full rounded-full " + s.color}
@@ -100,9 +104,14 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Confirm */}
+            {/* Confirm Password */}
             <div className="space-y-1">
-              <Field label="Confirm Password" name="confirm" type="password" placeholder="Repeat password" />
+              <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.31 }}>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Confirm Password</label>
+                <input type="password" name="confirm" value={form.confirm} onChange={set}
+                  placeholder="Repeat password" autoComplete="new-password"
+                  className={`${inputBase} ${mismatch ? inputError : inputNormal}`} />
+              </motion.div>
               <AnimatePresence>
                 {mismatch && (
                   <motion.p initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:"auto" }} exit={{ opacity:0, height:0 }}

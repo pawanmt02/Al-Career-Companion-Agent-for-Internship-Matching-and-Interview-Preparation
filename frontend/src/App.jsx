@@ -12,6 +12,12 @@ const DashboardPage      = lazy(() => import("./pages/DashboardPage"));
 const ProfilePage        = lazy(() => import("./pages/ProfilePage"));
 const ChangePasswordPage = lazy(() => import("./pages/ChangePasswordPage"));
 const CoverLetterPage    = lazy(() => import("./pages/CoverLetterPage"));
+const ApplicationsPage   = lazy(() => import("./pages/ApplicationsPage"));
+const InterviewPrepPage  = lazy(() => import("./pages/InterviewPrepPage"));
+const DocumentQAPage     = lazy(() => import("./pages/DocumentQAPage"));
+const ResumeAnalyzerPage = lazy(() => import("./pages/ResumeAnalyzerPage"));
+const MockInterviewPage  = lazy(() => import("./pages/MockInterviewPage"));
+import ChatbotWidget from "./components/ChatbotWidget";
 
 /* ── Page skeleton loader ── */
 function PageLoader() {
@@ -68,6 +74,31 @@ function AnimatedRoutes() {
             <PageWrapper><Suspense fallback={<PageLoader/>}><CoverLetterPage/></Suspense></PageWrapper>
           </ProtectedRoute>
         }/>
+        <Route path="/applications" element={
+          <ProtectedRoute>
+            <PageWrapper><Suspense fallback={<PageLoader/>}><ApplicationsPage/></Suspense></PageWrapper>
+          </ProtectedRoute>
+        }/>
+        <Route path="/interview-prep" element={
+          <ProtectedRoute>
+            <PageWrapper><Suspense fallback={<PageLoader/>}><InterviewPrepPage/></Suspense></PageWrapper>
+          </ProtectedRoute>
+        }/>
+        <Route path="/document-qa" element={
+          <ProtectedRoute>
+            <PageWrapper><Suspense fallback={<PageLoader/>}><DocumentQAPage/></Suspense></PageWrapper>
+          </ProtectedRoute>
+        }/>
+        <Route path="/resume-analyzer" element={
+          <ProtectedRoute>
+            <PageWrapper><Suspense fallback={<PageLoader/>}><ResumeAnalyzerPage/></Suspense></PageWrapper>
+          </ProtectedRoute>
+        }/>
+        <Route path="/mock-interview" element={
+          <ProtectedRoute>
+            <PageWrapper><Suspense fallback={<PageLoader/>}><MockInterviewPage/></Suspense></PageWrapper>
+          </ProtectedRoute>
+        }/>
       </Routes>
     </AnimatePresence>
   );
@@ -80,6 +111,7 @@ export default function App() {
         <div className="min-h-screen">
           <Navbar />
           <AnimatedRoutes />
+          <ChatbotWidget />
         </div>
         <Toaster
           position="top-right"

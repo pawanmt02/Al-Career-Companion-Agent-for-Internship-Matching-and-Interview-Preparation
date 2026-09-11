@@ -4,9 +4,14 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 
 const NAV_LINKS = [
-  { to:"/",               label:"Dashboard",  icon:"🏠" },
-  { to:"/profile",        label:"Profile",    icon:"👤" },
-  { to:"/change-password",label:"Security",   icon:"🔐" },
+  { to:"/",                label:"Dashboard",       icon:"🏠" },
+  { to:"/applications",    label:"Applications",    icon:"📋" },
+  { to:"/interview-prep",  label:"Interview Prep",  icon:"🎓" },
+  { to:"/mock-interview",  label:"Mock Interview",  icon:"⏱️" },
+  { to:"/document-qa",     label:"Document Q&A",    icon:"📄" },
+  { to:"/resume-analyzer", label:"Resume Score",    icon:"📊" },
+  { to:"/profile",         label:"Profile",         icon:"👤" },
+  { to:"/change-password", label:"Security",        icon:"🔐" },
 ];
 
 export default function Navbar() {

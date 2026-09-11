@@ -254,6 +254,53 @@ function CoverLetterBox({ jobId, jobTitle, company }) {
   );
 }
 
+/* ─── Apply Button ──────────────────────────────────────── */
+function ApplyButton({ jobId, jobTitle, company }) {
+  const [applied, setApplied]   = useState(false);
+  const [loading, setLoading]   = useState(false);
+
+  const handleApply = async () => {
+    setLoading(true);
+    try {
+      await api.post(`/internships/${jobId}/apply`);
+      setApplied(true);
+      toast.success(`Applied to ${jobTitle} at ${company}! 🎉`);
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Failed to apply.";
+      if (msg.includes("already applied")) {
+        setApplied(true);
+        toast.error(msg);
+      } else {
+        toast.error(msg);
+      }
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <motion.div className="mt-4" initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.15 }}>
+      <motion.button
+        onClick={handleApply}
+        disabled={loading || applied}
+        whileHover={!applied && !loading ? { scale:1.02, y:-1 } : {}}
+        whileTap={!applied && !loading ? { scale:0.97 } : {}}
+        className={"w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all border " +
+          (applied
+            ? "bg-green-900/40 border-green-700/50 text-green-400 cursor-default"
+            : "bg-gradient-to-r from-brand-600 to-emerald-600 hover:from-brand-500 hover:to-emerald-500 text-white border-brand-500/30 shadow-lg shadow-brand-500/20 btn-glow disabled:opacity-60 disabled:cursor-not-allowed")}
+      >
+        {loading ? (
+          <><motion.div animate={{ rotate:360 }} transition={{ duration:0.8, repeat:Infinity, ease:"linear" }}
+            className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"/> Applying…</>
+        ) : applied ? (
+          <><span>✓</span> Applied</>
+        ) : (
+          <><span>🚀</span> Apply Now</>
+        )}
+      </motion.button>
+    </motion.div>
+  );
+}
+
 /* ─── Main RagMatchCard ─────────────────────────────────── */
 const SCORE_CONFIG = SCORE_CFG;
 
@@ -407,6 +454,9 @@ export default function RagMatchCard({ matches }) {
                             </div>
                           </motion.div>
                         )}
+
+                        {/* Apply button */}
+                        <ApplyButton jobId={match.job_id} jobTitle={match.title} company={match.company} />
 
                         {/* Cover letter section */}
                         <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.2 }}>
