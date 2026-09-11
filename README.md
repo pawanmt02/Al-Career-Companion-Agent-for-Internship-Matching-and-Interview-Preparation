@@ -87,4 +87,4 @@ The current development configuration stores the SQLite database locally and use
 
 ## License
 
-No license has been specified yet.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
