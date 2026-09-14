@@ -5,11 +5,28 @@ import api from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 
-const strength = (p) => {
+const PASSWORD_RULES = [
+  { key:"len",     test: p => p.length >= 8,             label:"At least 8 characters" },
+  { key:"upper",   test: p => /[A-Z]/.test(p),           label:"One uppercase letter (A-Z)" },
+  { key:"lower",   test: p => /[a-z]/.test(p),           label:"One lowercase letter (a-z)" },
+  { key:"num",     test: p => /[0-9]/.test(p),           label:"One digit (0-9)" },
+  { key:"special", test: p => /[^A-Za-z0-9]/.test(p),    label:"One special character (!@#$%)" },
+];
+
+const getStrength = (p) => {
   if (!p) return null;
-  if (p.length < 6)  return { pct:20, label:"Weak",   color:"bg-red-500",    text:"text-red-400"    };
-  if (p.length < 10) return { pct:55, label:"Medium",  color:"bg-amber-500",  text:"text-amber-400"  };
-                     return { pct:100,label:"Strong",  color:"bg-emerald-500",text:"text-emerald-400" };
+  const checks = {};
+  PASSWORD_RULES.forEach(r => { checks[r.key] = r.test(p); });
+  const score = Object.values(checks).filter(Boolean).length;
+  return {
+    checks,
+    score,
+    allPassed: score === PASSWORD_RULES.length,
+    pct:   [0, 20, 40, 60, 80, 100][score],
+    label: ["","Weak","Weak","Fair","Good","Strong"][score],
+    color: ["","bg-red-500","bg-red-500","bg-orange-500","bg-yellow-500","bg-emerald-500"][score],
+    text:  ["","text-red-400","text-red-400","text-orange-400","text-yellow-400","text-emerald-400"][score],
+  };
 };
 
 const inputBase = "w-full bg-gray-900 border text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 outline-none transition-all duration-200";
@@ -23,22 +40,34 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const set = (e) => setForm(f => ({ ...f, [e.target.name]:e.target.value }));
-  const s = strength(form.password);
+  const s = getStrength(form.password);
   const mismatch = form.confirm && form.password !== form.confirm;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.full_name || !form.email || !form.password) return toast.error("Fill all fields.");
+    if (!form.full_name.trim() || !form.email || !form.password) return toast.error("Fill all fields.");
+    if (form.full_name.trim().length < 2) return toast.error("Name must be at least 2 characters.");
     if (mismatch) return toast.error("Passwords do not match.");
-    if (form.password.length < 8) return toast.error("Password must be at least 8 characters.");
+    if (!s || !s.allPassed) return toast.error("Password does not meet all requirements.");
     setLoading(true);
     try {
-      await api.post("/auth/register", { full_name:form.full_name, email:form.email, password:form.password });
+      await api.post("/auth/register", { full_name:form.full_name.trim(), email:form.email, password:form.password });
+    } catch (err) {
+      const d = err.response?.data?.detail;
+      const msg = Array.isArray(d) ? d.map(e => e.msg?.replace("Value error, ","")).join("; ") : (d || "Registration failed.");
+      toast.error(msg);
+      setLoading(false);
+      return;
+    }
+    try {
       await login(form.email, form.password);
       toast.success("Welcome! Account created 🎉");
       navigate("/");
-    } catch (err) { toast.error(err.response?.data?.detail || "Registration failed."); }
-    finally { setLoading(false); }
+    } catch (err) {
+      toast.success("Account created! Please login.");
+      navigate("/login");
+    }
+    setLoading(false);
   };
 
   return (
@@ -100,6 +129,22 @@ export default function RegisterPage() {
                 <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
                   <motion.div className={"h-full rounded-full " + s.color}
                     initial={{ width:0 }} animate={{ width: s.pct+"%" }} transition={{ duration:0.4 }} />
+                </div>
+              )}
+              {form.password && (
+                <div className="space-y-1 mt-2">
+                  {PASSWORD_RULES.map(rule => (
+                    <motion.div key={rule.key}
+                      initial={{ opacity:0, x:-8 }} animate={{ opacity:1, x:0 }}
+                      className="flex items-center gap-2">
+                      <span className={`text-xs ${s?.checks?.[rule.key] ? "text-emerald-400" : "text-gray-600"}`}>
+                        {s?.checks?.[rule.key] ? "✓" : "○"}
+                      </span>
+                      <span className={`text-xs ${s?.checks?.[rule.key] ? "text-emerald-400" : "text-gray-500"}`}>
+                        {rule.label}
+                      </span>
+                    </motion.div>
+                  ))}
                 </div>
               )}
             </div>

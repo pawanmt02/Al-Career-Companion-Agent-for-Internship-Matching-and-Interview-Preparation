@@ -100,9 +100,9 @@ export default function LoginPage() {
             <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.15 }}>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Email</label>
               <input type="email" name="email" value={form.email} onChange={set}
-                placeholder="you@example.com" autoComplete="email"
+                placeholder="you@example.com" autoComplete="email" disabled={loading}
                 className="w-full bg-gray-900 border border-gray-800 hover:border-gray-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                  text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 outline-none transition-all duration-200" />
+                  text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 outline-none transition-all duration-200 disabled:opacity-50" />
             </motion.div>
 
             {/* Password */}
@@ -110,9 +110,9 @@ export default function LoginPage() {
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Password</label>
               <div className="relative">
                 <input type={showPass?"text":"password"} name="password" value={form.password} onChange={set}
-                  placeholder="Your password" autoComplete="current-password"
+                  placeholder="Your password" autoComplete="current-password" disabled={loading}
                   className="w-full bg-gray-900 border border-gray-800 hover:border-gray-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
-                    text-white rounded-xl px-4 py-3 pr-16 text-sm placeholder-gray-600 outline-none transition-all duration-200" />
+                    text-white rounded-xl px-4 py-3 pr-16 text-sm placeholder-gray-600 outline-none transition-all duration-200 disabled:opacity-50" />
                 <button type="button" onClick={() => setShowPass(s => !s)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-brand-400 text-xs transition font-medium">
                   {showPass?"Hide":"Show"}

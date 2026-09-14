@@ -4,10 +4,10 @@ import tempfile
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile, Depends, status
+from fastapi import FastAPI, File, HTTPException, UploadFile, Depends, status, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
@@ -15,7 +15,6 @@ from sentence_transformers import SentenceTransformer
 # --- Database & Auth Imports ---
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, JSON
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
-from passlib.context import CryptContext
 import bcrypt
 from jose import JWTError, jwt
 
@@ -33,33 +32,54 @@ except ImportError:
 # ==============================================================================
 # 1. APP INITIALIZATION & SECURITY CONFIG
 # ==============================================================================
+import logging
+import secrets
+
+logger = logging.getLogger(__name__)
+
 app = FastAPI(
     title="AI Resume Agent",
     version="5.0.0",
     description="Secure User Management, AI Resume Parsing, Profile Auto-Fill & Cover Letter Generation."
 )
 
+# CORS — restrict methods and headers for security
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[o.strip() for o in ALLOWED_ORIGINS],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
-# JWT Config
-SECRET_KEY = "super_secret_assignment_key"
+# JWT Config — load from env or generate secure default (warn in logs)
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "")
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_hex(32)
+    logger.warning("JWT_SECRET_KEY not set! Using a random key — tokens will NOT survive restarts.")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # Database Config (SQLite)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./airesume.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# Enable SQLite foreign key enforcement
+from sqlalchemy import event
+@event.listens_for(engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+# File upload limits
+MAX_FILE_SIZE_MB = 5
+MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024  # 5MB
 
 
 # ==============================================================================
@@ -73,7 +93,7 @@ class DBUser(Base):
 class DBResume(Base):
     __tablename__ = "resumes"
     id             = Column(Integer, primary_key=True, index=True)
-    user_id        = Column(Integer, ForeignKey("users.id"))
+    user_id        = Column(Integer, ForeignKey("users.id"), index=True)
     filename       = Column(String)
     extracted_data = Column(JSON)
 
@@ -81,7 +101,7 @@ class DBResume(Base):
 class DBUserProfile(Base):
     __tablename__ = "user_profiles"
     id             = Column(Integer, primary_key=True, index=True)
-    user_id        = Column(Integer, ForeignKey("users.id"), unique=True)
+    user_id        = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
     phone          = Column(String, nullable=True)
     summary        = Column(Text, nullable=True)
     skills         = Column(JSON, nullable=True)
@@ -95,7 +115,7 @@ class DBUserProfile(Base):
 class DBApplication(Base):
     __tablename__ = "applications"
     id              = Column(Integer, primary_key=True, index=True)
-    user_id         = Column(Integer, ForeignKey("users.id"))
+    user_id         = Column(Integer, ForeignKey("users.id"), index=True)
     internship_id   = Column(String, nullable=False)
     internship_title = Column(String, nullable=False)
     company         = Column(String, nullable=False)
@@ -109,7 +129,7 @@ class DBApplication(Base):
 class DBDocument(Base):
     __tablename__ = "documents"
     id             = Column(Integer, primary_key=True, index=True)
-    user_id        = Column(Integer, ForeignKey("users.id"))
+    user_id        = Column(Integer, ForeignKey("users.id"), index=True)
     filename       = Column(String, nullable=False)
     extracted_text = Column(Text, nullable=False)
     chunks         = Column(JSON, nullable=True)   # list of text chunks
@@ -127,10 +147,48 @@ def get_db():
 # ==============================================================================
 # 3. SCHEMAS & AUTH UTILS
 # ==============================================================================
+def validate_password_strength(password: str) -> str:
+    """Enforce industrial-standard password rules."""
+    errors = []
+    if len(password) < 8:
+        errors.append("at least 8 characters")
+    if len(password) > 72:
+        errors.append("at most 72 characters")
+    if not re.search(r'[A-Z]', password):
+        errors.append("one uppercase letter")
+    if not re.search(r'[a-z]', password):
+        errors.append("one lowercase letter")
+    if not re.search(r'[0-9]', password):
+        errors.append("one digit")
+    if not re.search(r'[^A-Za-z0-9]', password):
+        errors.append("one special character (!@#$%^&*)")
+    if errors:
+        raise ValueError("Password must contain: " + ", ".join(errors))
+    # Check for common weak passwords
+    weak = ["password","12345678","qwerty123","admin123","letmein1","welcome1"]
+    if password.lower().strip() in weak:
+        raise ValueError("This password is too common. Choose a stronger one.")
+    return password
+
 class UserCreate(BaseModel):
-    full_name: str
+    full_name: str = Field(min_length=2, max_length=100)
     email: EmailStr
-    password: str = Field(max_length=72)
+    password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("password")
+    @classmethod
+    def password_strong(cls, v):
+        return validate_password_strength(v)
+
+    @field_validator("full_name")
+    @classmethod
+    def name_valid(cls, v):
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Name must be at least 2 characters")
+        if not re.match(r'^[A-Za-z\s.\'-]+$', v):
+            raise ValueError("Name can only contain letters, spaces, dots, hyphens, and apostrophes")
+        return v
 
 class UserResponse(BaseModel):
     id: int
@@ -153,21 +211,29 @@ class UserProfileDataResponse(BaseModel):
 
 class PasswordChange(BaseModel):
     old_password: str
-    new_password: str = Field(max_length=72)
+    new_password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strong(cls, v):
+        return validate_password_strength(v)
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-def verify_password(plain_password, hashed_password):
-    return bcrypt.checkpw(plain_password[:72].encode("utf-8"), hashed_password.encode("utf-8"))
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8")[:72], hashed_password.encode("utf-8"))
+    except Exception:
+        return False
 
-def get_password_hash(password):
-    return bcrypt.hashpw(password[:72].encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt(rounds=12)).decode("utf-8")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=60))
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -196,7 +262,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(DBUser).filter(DBUser.email == user.email).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=409, detail="Email already registered")
     hashed_password = get_password_hash(user.password)
     new_user = DBUser(email=user.email, hashed_password=hashed_password, full_name=user.full_name)
     db.add(new_user)
@@ -208,7 +274,11 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(DBUser).filter(DBUser.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -216,6 +286,8 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
 def change_password(passwords: PasswordChange, db: Session = Depends(get_db), current_user: DBUser = Depends(get_current_user)):
     if not verify_password(passwords.old_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect old password")
+    if passwords.old_password == passwords.new_password:
+        raise HTTPException(status_code=400, detail="New password must be different from old password")
     current_user.hashed_password = get_password_hash(passwords.new_password)
     db.commit()
     return {"message": "Password updated successfully"}
@@ -234,7 +306,8 @@ def get_resume_profile_data(db: Session = Depends(get_db), current_user: DBUser 
 
 @app.delete("/users/profile", status_code=status.HTTP_204_NO_CONTENT, tags=["User Management"])
 def delete_user_account(db: Session = Depends(get_db), current_user: DBUser = Depends(get_current_user)):
-    # Also delete profile data, applications and documents
+    # Delete ALL user data (GDPR compliance — right to be forgotten)
+    db.query(DBResume).filter(DBResume.user_id == current_user.id).delete()
     db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user.id).delete()
     db.query(DBApplication).filter(DBApplication.user_id == current_user.id).delete()
     db.query(DBDocument).filter(DBDocument.user_id == current_user.id).delete()
@@ -949,7 +1022,7 @@ def analyze_resume(
 @app.post("/mock-interview/start", tags=["Mock Interview"])
 def start_mock_interview(
     internship_id: str = None,
-    count: int = 10,
+    count: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
     current_user: DBUser = Depends(get_current_user)
 ):
@@ -1201,7 +1274,7 @@ FALLBACK_RESPONSES = [
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=1000)
 
 
 @app.post("/chatbot/message", tags=["Chatbot"])

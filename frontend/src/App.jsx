@@ -17,6 +17,7 @@ const InterviewPrepPage  = lazy(() => import("./pages/InterviewPrepPage"));
 const DocumentQAPage     = lazy(() => import("./pages/DocumentQAPage"));
 const ResumeAnalyzerPage = lazy(() => import("./pages/ResumeAnalyzerPage"));
 const MockInterviewPage  = lazy(() => import("./pages/MockInterviewPage"));
+const NotFoundPage       = lazy(() => import("./pages/NotFoundPage"));
 import ChatbotWidget from "./components/ChatbotWidget";
 
 /* ── Page skeleton loader ── */
@@ -99,6 +100,7 @@ function AnimatedRoutes() {
             <PageWrapper><Suspense fallback={<PageLoader/>}><MockInterviewPage/></Suspense></PageWrapper>
           </ProtectedRoute>
         }/>
+        <Route path="*" element={<PageWrapper><Suspense fallback={<PageLoader/>}><NotFoundPage/></Suspense></PageWrapper>} />
       </Routes>
     </AnimatePresence>
   );

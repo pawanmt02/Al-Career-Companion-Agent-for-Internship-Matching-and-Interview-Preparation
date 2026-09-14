@@ -6,15 +6,16 @@ import toast from "react-hot-toast";
 
 const getStr = (p) => {
   if (!p) return null;
-  const checks = { len: p.length>=8, upper: /[A-Z]/.test(p), num: /[0-9]/.test(p), special: /[^A-Za-z0-9]/.test(p) };
+  const checks = { len: p.length>=8, upper: /[A-Z]/.test(p), lower: /[a-z]/.test(p), num: /[0-9]/.test(p), special: /[^A-Za-z0-9]/.test(p) };
   const score  = Object.values(checks).filter(Boolean).length;
   return {
     checks,
     score,
-    pct:   [0,25,50,80,100][score],
-    label: ["","Weak","Fair","Good","Strong"][score],
-    color: ["","bg-red-500","bg-orange-500","bg-yellow-500","bg-emerald-500"][score],
-    text:  ["","text-red-400","text-orange-400","text-yellow-400","text-emerald-400"][score],
+    allPassed: score === 5,
+    pct:   [0,20,40,60,80,100][score],
+    label: ["","Weak","Weak","Fair","Good","Strong"][score],
+    color: ["","bg-red-500","bg-red-500","bg-orange-500","bg-yellow-500","bg-emerald-500"][score],
+    text:  ["","text-red-400","text-red-400","text-orange-400","text-yellow-400","text-emerald-400"][score],
   };
 };
 
@@ -34,7 +35,7 @@ export default function ChangePasswordPage() {
     e.preventDefault();
     if (!form.old_password || !form.new_password) return toast.error("Fill all fields.");
     if (mismatch) return toast.error("Passwords do not match.");
-    if (form.new_password.length < 8) return toast.error("Minimum 8 characters.");
+    if (!s || !s.allPassed) return toast.error("Password does not meet all requirements.");
     setLoading(true);
     try {
       await api.put("/auth/change-password", { old_password:form.old_password, new_password:form.new_password });
@@ -47,9 +48,10 @@ export default function ChangePasswordPage() {
 
   const CHECKS = [
     { key:"len",     label:"At least 8 characters" },
-    { key:"upper",   label:"One uppercase letter"  },
-    { key:"num",     label:"One number"             },
-    { key:"special", label:"One special character"  },
+    { key:"upper",   label:"One uppercase letter (A-Z)"  },
+    { key:"lower",   label:"One lowercase letter (a-z)"  },
+    { key:"num",     label:"One digit (0-9)"             },
+    { key:"special", label:"One special character (!@#$%)"  },
   ];
 
   return (
